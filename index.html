@@ -327,6 +327,7 @@
                 invest: 1, 
                 savings: 10,
                 insurance: 3,
+                emergency: 0.5, // New field for emergency fund
             });
 
             const [livingInputMode, setLivingInputMode] = useState('detail'); 
@@ -427,7 +428,11 @@
             const yearsInRetirement = endAge - retireAge;
             const totalFutureIncome = annualIncome * yearsToWork;
 
-            const annualExpInv = (parseFloat(coreExpenses.invest || 0) * 12) + parseFloat(coreExpenses.savings || 0);
+            // Include Emergency Fund in Annual Invest Calculation
+            const annualExpInv = (parseFloat(coreExpenses.invest || 0) * 12) + 
+                                 parseFloat(coreExpenses.savings || 0) +
+                                 (parseFloat(coreExpenses.emergency || 0) * 12);
+                                 
             const annualExpProtection = parseFloat(coreExpenses.insurance || 0);
             
             // New Calculation for Savings & Protection Subtotal
@@ -533,6 +538,7 @@
                         <div className="text-left text-xs leading-relaxed">
                             <div className="font-bold text-yellow-200 mb-1 border-b border-yellow-500 pb-1">儲蓄理財項目</div>
                             <div>定期定額: {(coreExpenses.invest * 12).toFixed(1)} 萬/年</div>
+                            <div>一般備用金: {(coreExpenses.emergency * 12).toFixed(1)} 萬/年</div>
                             <div>儲蓄險: {coreExpenses.savings} 萬/年</div>
                             {remainingCash > 0 && (
                                 <div className="text-emerald-300">現金活存 (結餘): {remainingCash.toFixed(1)} 萬/年</div>
@@ -688,7 +694,8 @@
                                                     </>
                                                 } 
                                                 value={coreExpenses.invest} 
-                                                onChange={(v) => setCoreExpenses({...coreExpenses, invest: v})} 
+                                                onChange={(v) => setCoreExpenses({...coreExpenses, invest: v})}
+                                                tooltip="基金/股票/ETF/債劵/黃金/加密貨幣等" 
                                             />
                                             
                                             <NumberInput 
@@ -701,7 +708,8 @@
                                                     </>
                                                 }
                                                 value={coreExpenses.savings} 
-                                                onChange={(v) => setCoreExpenses({...coreExpenses, savings: v})} 
+                                                onChange={(v) => setCoreExpenses({...coreExpenses, savings: v})}
+                                                tooltip="單純利變型或分紅保單" 
                                             />
                                             
                                             <NumberInput 
@@ -714,7 +722,15 @@
                                                     </>
                                                 }
                                                 value={coreExpenses.insurance} 
-                                                onChange={(v) => setCoreExpenses({...coreExpenses, insurance: v})} 
+                                                onChange={(v) => setCoreExpenses({...coreExpenses, insurance: v})}
+                                                tooltip="包含 一般醫療險、防癌險、意外險、重大傷病險和長照失能險" 
+                                            />
+
+                                             <NumberInput 
+                                                label="一般備用金儲蓄 (月)"
+                                                value={coreExpenses.emergency} 
+                                                onChange={(v) => setCoreExpenses({...coreExpenses, emergency: v})}
+                                                tooltip="緊急預備金，至少要準備3-6個月" 
                                             />
                                         </div>
                                         
