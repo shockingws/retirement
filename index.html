@@ -176,6 +176,12 @@
             border: 1px solid rgba(255,255,255,0.1);
         }
         
+        /* Modal */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+        }
+
         /* Select styling fix */
         select {
             appearance: none;
@@ -304,6 +310,128 @@
             );
         };
 
+        // --- Detail Modal Component ---
+        const CalculationDetailModal = ({ isOpen, onClose, details }) => {
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
+                            <h3 className="text-xl font-black text-gray-800 flex items-center">
+                                <i className="fas fa-calculator mr-2 text-blue-500"></i>詳細算式說明
+                            </h3>
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                <i className="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-8">
+                            
+                            {/* Assets Accumulation */}
+                            <div>
+                                <h4 className="font-bold text-emerald-600 mb-3 border-l-4 border-emerald-500 pl-2">1. 退休前預估累積資產 (理財增值)</h4>
+                                <div className="text-sm text-gray-600 space-y-2 bg-emerald-50 p-4 rounded-xl">
+                                    <div className="flex justify-between font-bold border-b border-emerald-200 pb-2 mb-2">
+                                        <span>項目</span>
+                                        <span>計算 (金額 × 年期)</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>現有資產</span>
+                                        <span>{details.totalAssets.toFixed(1)} 萬</span>
+                                    </div>
+                                    {details.investItems.map(item => {
+                                        const investYears = Math.max(0, Math.min(parseFloat(item.investUntilAge || details.retireAge) - details.age, details.yearsToWork));
+                                        return (
+                                            <div key={item.id} className="flex justify-between">
+                                                <span>{item.name} (定期定額)</span>
+                                                <span>{(parseFloat(item.value)*12).toFixed(1)}/年 × {investYears}年</span>
+                                            </div>
+                                        );
+                                    })}
+                                    {details.savingsItems.map(item => {
+                                        const payingYears = Math.max(0, Math.min(parseFloat(item.yearsRemaining || 0), details.yearsToWork));
+                                        return (
+                                            <div key={item.id} className="flex justify-between">
+                                                <span>{item.name} (儲蓄險)</span>
+                                                <span>{parseFloat(item.value).toFixed(1)}/年 × {payingYears}年</span>
+                                            </div>
+                                        );
+                                    })}
+                                    <div className="flex justify-between">
+                                        <span>一般備用金</span>
+                                        <span>{(details.annualExpEmergencyRaw).toFixed(1)}/年 × {details.yearsToWork}年</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>現金活存 (結餘)</span>
+                                        <span>{details.remainingCash.toFixed(1)}/年 × {details.yearsToWork}年</span>
+                                    </div>
+                                    {details.deficit < 0 && (
+                                        <div className="flex justify-between text-red-500">
+                                            <span>現金流透支 (扣減資產)</span>
+                                            <span>{Math.abs(details.deficit).toFixed(1)}/年 × {details.yearsToWork}年</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between text-red-400">
+                                        <span>扣除: 購房頭期款</span>
+                                        <span>- {details.houseDownPayment.toFixed(1)} 萬</span>
+                                    </div>
+                                    <div className="flex justify-between text-red-400">
+                                        <span>扣除: 其他夢想</span>
+                                        <span>- {details.totalOtherDreams.toFixed(1)} 萬</span>
+                                    </div>
+                                    <div className="border-t border-emerald-200 pt-2 flex justify-between font-black text-emerald-700 mt-2">
+                                        <span>總計累積</span>
+                                        <span>{details.projectedAssetsAtRetire.toFixed(1)} 萬</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Lifetime Spending */}
+                            <div>
+                                <h4 className="font-bold text-yellow-600 mb-3 border-l-4 border-yellow-500 pl-2">2. 這輩子預估總花費 (支出總覽)</h4>
+                                <div className="text-sm text-gray-600 space-y-2 bg-yellow-50 p-4 rounded-xl">
+                                    <div className="flex justify-between font-bold border-b border-yellow-200 pb-2 mb-2">
+                                        <span>項目</span>
+                                        <span>計算 (金額 × 年期)</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>生活消費 (一生)</span>
+                                        <span>{details.annualExpLiving.toFixed(1)}/年 × {details.totalLifeYears}年</span>
+                                    </div>
+                                    {details.insuranceItems.map(item => {
+                                         const payingYears = Math.max(0, Math.min(parseFloat(item.payUntilAge || 100) - details.age, details.endAge - details.age));
+                                         return (
+                                            <div key={item.id} className="flex justify-between">
+                                                <span>{item.name} (保費)</span>
+                                                <span>{parseFloat(item.value).toFixed(1)}/年 × {payingYears}年</span>
+                                            </div>
+                                         );
+                                    })}
+                                    <div className="flex justify-between">
+                                        <span>房貸本利和 + 頭期款</span>
+                                        <span>{details.totalHouseLifetimeCost.toFixed(1)} 萬</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>其他夢想支出</span>
+                                        <span>{details.totalOtherDreams.toFixed(1)} 萬</span>
+                                    </div>
+                                    
+                                    <div className="border-t border-yellow-200 pt-2 flex justify-between font-black text-yellow-700 mt-2">
+                                        <span>總計花費</span>
+                                        <span>{details.totalLifetimeSpend.toFixed(1)} 萬</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div className="p-4 bg-gray-50 text-center text-xs text-gray-400 rounded-b-2xl">
+                            * 計算結果僅供參考，未考量通膨與投資報酬率變化。
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // --- Main App Component ---
         const App = () => {
             const [gender, setGender] = useState('male');
@@ -342,6 +470,9 @@
                 loanYears: 30
             });
             const [dreamItems, setDreamItems] = useState([]);
+            
+            // Modal State
+            const [isModalOpen, setIsModalOpen] = useState(false);
 
             // --- Effects ---
             useEffect(() => {
@@ -400,6 +531,30 @@
                 setDreamItems(dreamItems.filter(item => item.id !== id));
             };
 
+            // New Financial Handlers
+            const [investItems, setInvestItems] = useState([
+                { id: 'inv1', name: '定期定額', value: 1, investUntilAge: 60 }
+            ]);
+            
+            const [savingsItems, setSavingsItems] = useState([
+                { id: 'sav1', name: '儲蓄險', value: 10, yearsRemaining: 10 }
+            ]);
+            
+            const [insuranceItems, setInsuranceItems] = useState([
+                { id: 'ins1', name: '醫療/防癌', value: 3, payUntilAge: 75 }
+            ]);
+
+            const updateItem = (setter, items, id, field, val) => {
+                setter(items.map(item => item.id === id ? { ...item, [field]: val } : item));
+            };
+            const removeItem = (setter, items, id) => {
+                setter(items.filter(item => item.id !== id));
+            };
+
+            const addInvestItem = () => setInvestItems([...investItems, { id: generateId(), name: '新投資', value: 0, investUntilAge: retireAge }]);
+            const addSavingsItem = () => setSavingsItems([...savingsItems, { id: generateId(), name: '新儲蓄險', value: 0, yearsRemaining: 6 }]);
+            const addInsuranceItem = () => setInsuranceItems([...insuranceItems, { id: generateId(), name: '新保單', value: 0, payUntilAge: 75 }]);
+
             const handleDownload = () => {
                 const htmlContent = document.documentElement.outerHTML;
                 const blob = new Blob([htmlContent], { type: 'text/html' });
@@ -424,19 +579,18 @@
                        parseFloat(income.yearlyBonus || 0);
             }, [income]);
 
-            const yearsToWork = retireAge - age;
-            const yearsInRetirement = endAge - retireAge;
+            const yearsToWork = Math.max(0, retireAge - age);
+            const yearsInRetirement = Math.max(0, endAge - retireAge);
             const totalFutureIncome = annualIncome * yearsToWork;
 
-            // Include Emergency Fund in Annual Invest Calculation
-            const annualExpInv = (parseFloat(coreExpenses.invest || 0) * 12) + 
-                                 parseFloat(coreExpenses.savings || 0) +
-                                 (parseFloat(coreExpenses.emergency || 0) * 12);
-                                 
-            const annualExpProtection = parseFloat(coreExpenses.insurance || 0);
+            // --- Dynamic Annual Expenses Calculation ---
+            const annualExpInvestRaw = investItems.reduce((acc, item) => acc + (parseFloat(item.value || 0) * 12), 0);
+            const annualExpSavingsRaw = savingsItems.reduce((acc, item) => acc + parseFloat(item.value || 0), 0);
+            const annualExpEmergencyRaw = parseFloat(coreExpenses.emergency || 0) * 12;
             
-            // New Calculation for Savings & Protection Subtotal
-            const annualExpSavingsAndProtection = annualExpInv + annualExpProtection;
+            const annualExpProtectionRaw = insuranceItems.reduce((acc, item) => acc + parseFloat(item.value || 0), 0);
+            
+            const annualExpSavingsAndProtection = annualExpInvestRaw + annualExpSavingsRaw + annualExpEmergencyRaw + annualExpProtectionRaw;
 
             const annualExpLiving = useMemo(() => {
                 if (livingInputMode === 'simple') {
@@ -449,8 +603,9 @@
                 }
             }, [livingItems, livingInputMode, simpleMonthlyLiving]);
 
-            const totalAnnualRegularExpense = annualExpInv + annualExpProtection + annualExpLiving;
+            const totalAnnualRegularExpense = annualExpSavingsAndProtection + annualExpLiving;
 
+            // --- Dreams & Housing ---
             const safeHousePrice = parseFloat(housePlan.housePrice) || 0;
             const safeLoanPercent = parseFloat(housePlan.loanPercent) || 0;
             const safeLoanRate = parseFloat(housePlan.loanRate) || 0;
@@ -479,49 +634,91 @@
 
             const totalDreamsAndFutureExpenses = totalHouseLifetimeCost + totalOtherDreams;
 
-            // --- Projections ---
-            const netAnnualFlowPreRetire = annualIncome - totalAnnualRegularExpense - (monthlyMortgage * 12);
-            
-            const projectedAssetsAtRetire = totalAssets + (netAnnualFlowPreRetire * yearsToWork) - houseDownPayment - totalOtherDreams;
+            // --- Ratios (Income Based) ---
+            const annualMortgagePayment = includeHousePlan ? monthlyMortgage * 12 : 0;
+            const totalAnnualOutflow = totalAnnualRegularExpense + annualMortgagePayment;
+            const remainingCash = Math.max(0, annualIncome - totalAnnualOutflow);
+            const deficit = Math.min(0, annualIncome - totalAnnualOutflow);
 
-            const annualRetireSpend = annualExpLiving + annualExpProtection; 
-            
-            const totalLifetimeSpend = 
-                (totalAnnualRegularExpense * yearsToWork) + 
-                (annualRetireSpend * yearsInRetirement) + 
-                totalOtherDreams + 
-                totalHouseLifetimeCost;
+            const ratioBase = Math.max(annualIncome, 1); 
+            const visualRatioBase = Math.max(annualIncome, totalAnnualRegularExpense + annualMortgagePayment);
 
-            const requiredRetireFund = annualRetireSpend * yearsInRetirement;
-            const gap = requiredRetireFund - projectedAssetsAtRetire;
-            const extraAnnualIncomeNeeded = gap > 0 ? gap / yearsToWork : 0;
-            const targetMonthlyIncome = (annualIncome + extraAnnualIncomeNeeded) / 12;
-
-            // --- Ratios (Income Based Logic) ---
-            // Calculate Remaining Cash (Cash Surplus)
-            // Income - (Living + Protection + Explicit Investments)
-            const remainingCash = Math.max(0, annualIncome - totalAnnualRegularExpense);
-
-            // Total Base for Ratio: Use Annual Income. 
-            // If Spending > Income, use Spending as base to show visual overflow/proportion correctly, or stick to Income to show >100%.
-            // Stick to Income as standard 631 base, but ensure visual bar doesn't break if > 100%.
-            const ratioBase = Math.max(annualIncome, 1); // Avoid div by 0
-            
-            // For Visualization: If total expenses > income, scale to total expenses so bars fit 100% width
-            const visualRatioBase = Math.max(annualIncome, totalAnnualRegularExpense);
-
-            const ratioProtection = (annualExpProtection / ratioBase) * 100;
+            const ratioProtection = (annualExpProtectionRaw / ratioBase) * 100;
             const ratioLiving = (annualExpLiving / ratioBase) * 100;
             
-            // Savings includes Explicit Investments + Remaining Cash (Surplus)
-            const totalSavingsForRatio = annualExpInv + remainingCash;
+            const totalSavingsForRatio = annualExpInvestRaw + annualExpSavingsRaw + annualExpEmergencyRaw + remainingCash;
             const ratioSavings = (totalSavingsForRatio / ratioBase) * 100;
 
-            // Visual Ratios (Scaled to fit bar if overspending)
-            const visRatioProtection = (annualExpProtection / visualRatioBase) * 100;
+            const visRatioProtection = (annualExpProtectionRaw / visualRatioBase) * 100;
             const visRatioLiving = (annualExpLiving / visualRatioBase) * 100;
             const visRatioSavings = (totalSavingsForRatio / visualRatioBase) * 100;
 
+            // --- ADVANCED PROJECTIONS ---
+            
+            // 1. Assets at Retirement
+            const totalAccumulatedInvest = investItems.reduce((acc, item) => {
+                const investYears = Math.max(0, Math.min(parseFloat(item.investUntilAge || retireAge) - age, yearsToWork));
+                return acc + (parseFloat(item.value || 0) * 12 * investYears);
+            }, 0);
+
+            const totalAccumulatedSavings = savingsItems.reduce((acc, item) => {
+                const payingYears = Math.max(0, Math.min(parseFloat(item.yearsRemaining || 0), yearsToWork));
+                return acc + (parseFloat(item.value || 0) * payingYears);
+            }, 0);
+
+            const totalAccumulatedEmergency = annualExpEmergencyRaw * yearsToWork;
+
+            const totalAccumulatedSurplus = remainingCash * yearsToWork;
+            const totalAccumulatedDeficit = deficit * yearsToWork; // Deficit reduces assets
+
+            const totalWealthAccumulation = totalAccumulatedInvest + totalAccumulatedSavings + totalAccumulatedEmergency + totalAccumulatedSurplus + totalAccumulatedDeficit;
+
+            const projectedAssetsAtRetire = totalAssets + totalWealthAccumulation - houseDownPayment - totalOtherDreams;
+
+            // 2. Total Lifetime Spend
+            const totalLifetimeLiving = annualExpLiving * (yearsToWork + yearsInRetirement);
+
+            const totalLifetimeProtection = insuranceItems.reduce((acc, item) => {
+                const payingYears = Math.max(0, Math.min(parseFloat(item.payUntilAge || 100) - age, endAge - age));
+                return acc + (parseFloat(item.value || 0) * payingYears);
+            }, 0);
+
+            const totalLifetimeSpend = 
+                totalLifetimeLiving + 
+                totalLifetimeProtection + 
+                totalOtherDreams + 
+                totalHouseLifetimeCost; 
+
+            const requiredRetireFund = (annualExpLiving + annualExpProtectionRaw) * yearsInRetirement; 
+            const retirementAnnualSpendEst = annualExpLiving + annualExpProtectionRaw;
+            const requiredRetireFundSimple = retirementAnnualSpendEst * yearsInRetirement;
+            
+            const gap = requiredRetireFundSimple - projectedAssetsAtRetire;
+            
+            const extraAnnualIncomeNeeded = gap > 0 ? gap / yearsToWork : 0;
+            const targetMonthlyIncome = (annualIncome + extraAnnualIncomeNeeded) / 12;
+
+            // Prepare Data for Modal
+            const detailData = {
+                totalAssets,
+                investItems,
+                savingsItems,
+                annualExpEmergencyRaw,
+                remainingCash,
+                deficit,
+                houseDownPayment,
+                totalOtherDreams,
+                projectedAssetsAtRetire,
+                annualExpLiving,
+                totalLifeYears: yearsToWork + yearsInRetirement,
+                insuranceItems,
+                totalHouseLifetimeCost,
+                totalLifetimeSpend,
+                yearsToWork,
+                age,
+                retireAge,
+                endAge
+            };
 
             // --- Chart Tooltip Helper ---
             const renderChartTooltip = (type) => {
@@ -529,7 +726,9 @@
                     return (
                         <div className="text-left text-xs leading-relaxed">
                             <div className="font-bold text-blue-200 mb-1 border-b border-blue-500 pb-1">保障項目</div>
-                            <div>醫療/壽險: {coreExpenses.insurance} 萬/年</div>
+                            {insuranceItems.map(item => (
+                                <div key={item.id}>{item.name}: {item.value} 萬/年</div>
+                            ))}
                         </div>
                     );
                 }
@@ -537,9 +736,9 @@
                     return (
                         <div className="text-left text-xs leading-relaxed">
                             <div className="font-bold text-yellow-200 mb-1 border-b border-yellow-500 pb-1">儲蓄理財項目</div>
-                            <div>定期定額: {(coreExpenses.invest * 12).toFixed(1)} 萬/年</div>
-                            <div>一般備用金: {(coreExpenses.emergency * 12).toFixed(1)} 萬/年</div>
-                            <div>儲蓄險: {coreExpenses.savings} 萬/年</div>
+                            {investItems.map(item => <div key={item.id}>{item.name}: {(item.value*12).toFixed(1)} 萬/年</div>)}
+                            {savingsItems.map(item => <div key={item.id}>{item.name}: {item.value} 萬/年</div>)}
+                            <div>一般備用金: {(annualExpEmergencyRaw).toFixed(1)} 萬/年</div>
                             {remainingCash > 0 && (
                                 <div className="text-emerald-300">現金活存 (結餘): {remainingCash.toFixed(1)} 萬/年</div>
                             )}
@@ -570,35 +769,17 @@
                 <div className="w-full">
                     {/* Full Width Header Container */}
                     <div className="w-full relative mb-0 shadow-none overflow-hidden bg-white group">
-                        {/* Background Image */}
-                        <div 
-                            className="w-full h-72 md:h-96 bg-cover bg-center transition-transform duration-1000 group-hover:scale-105"
-                            style={{
-                                backgroundImage: "url('https://github.com/shockingws/retirement/blob/main/retirement_header.png?raw=true')",
-                            }}
-                        ></div>
-                        
-                        {/* Gradient Fade for Natural Blend */}
+                        <div className="w-full h-72 md:h-96 bg-cover bg-center transition-transform duration-1000 group-hover:scale-105" style={{backgroundImage: "url('https://github.com/shockingws/retirement/blob/main/retirement_header.png?raw=true')"}}></div>
                         <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#f8fafc] via-[#f8fafc]/60 to-transparent pointer-events-none"></div>
-                        
-                        {/* Content Overlay */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center z-20 text-white text-center p-4 pb-24">
                              <div className="inline-flex items-center justify-center p-4 rounded-full bg-white/20 backdrop-blur-md mb-4 shadow-inner border-[3px] border-white mt-4">
                                 <i className="fas fa-rocket text-4xl animate-bounce text-yellow-300"></i>
                             </div>
-                            
-                            {/* Title with Rounded Background */}
                             <div className="bg-black/40 backdrop-blur-md rounded-2xl px-8 py-3 mb-2 shadow-lg">
-                                <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white drop-shadow-md">
-                                    退休領航員
-                                </h1>
+                                <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white drop-shadow-md">退休領航員</h1>
                             </div>
-
-                            {/* Subtitle with Semi-transparent Background */}
                             <div className="bg-black/30 backdrop-blur-sm rounded-xl px-6 py-2 mt-2 shadow-md">
-                                <p className="text-blue-50 text-sm md:text-base font-medium opacity-95 tracking-wide">
-                                    盈哲保身 專屬 · 打造您的財富星圖
-                                </p>
+                                <p className="text-blue-50 text-sm md:text-base font-medium opacity-95 tracking-wide">盈哲保身 專屬 · 打造您的財富星圖</p>
                             </div>
                         </div>
                     </div>
@@ -609,7 +790,6 @@
                         {/* Section 1: Timeline - Compacted */}
                         <div className="card bg-white p-5 rounded-3xl shadow-lg mb-6 border-t-8 border-indigo-500">
                             <SectionTitle icon="fa-clock" title="人生時間軸" colorClass="from-indigo-500 to-purple-600" compact={true} />
-                            
                             <div className="flex justify-center space-x-4 mb-4">
                                 <button onClick={() => setGender('male')} className={`group flex flex-col items-center p-2 rounded-xl border-2 transition-all duration-300 w-24 ${gender === 'male' ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md transform scale-105' : 'border-gray-100 hover:border-blue-200 text-gray-400'}`}>
                                     <i className="fas fa-mars text-2xl mb-1 group-hover:scale-110 transition-transform"></i><span className="font-bold text-sm">男生</span>
@@ -618,294 +798,136 @@
                                     <i className="fas fa-venus text-2xl mb-1 group-hover:scale-110 transition-transform"></i><span className="font-bold text-sm">女生</span>
                                 </button>
                             </div>
-
                             <div className="space-y-4 px-2 md:px-8">
-                                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                    <div className="flex justify-between mb-1"><span className="font-bold text-gray-600 text-sm flex items-center"><i className="fas fa-user mr-2 text-indigo-400"></i>現在年紀</span><span className="text-indigo-600 font-black text-xl">{age} <small className="text-xs font-normal">歲</small></span></div>
-                                    <input type="range" min="20" max="65" value={age} onChange={(e) => handleAgeChange(e.target.value)} className="w-full text-indigo-500" />
-                                </div>
-                                
-                                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                    <div className="flex justify-between mb-1"><span className="font-bold text-gray-600 text-sm flex items-center"><i className="fas fa-flag-checkered mr-2 text-green-400"></i>退休年紀</span><span className="text-green-600 font-black text-xl">{retireAge} <small className="text-xs font-normal">歲</small></span></div>
-                                    <input type="range" min="50" max="75" value={retireAge} onChange={(e) => handleRetireAgeChange(e.target.value)} className="w-full text-green-500" />
-                                    <div className="text-right text-xs font-bold text-gray-400 mt-1 bg-white inline-block px-2 py-0.5 rounded shadow-sm">距離退休還有 <span className="text-green-500">{yearsToWork}</span> 年</div>
-                                </div>
-                                
-                                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                    <div className="flex justify-between mb-1"><span className="font-bold text-gray-600 text-sm flex items-center"><i className="fas fa-hourglass-end mr-2 text-gray-400"></i>預估壽命</span><span className="text-gray-500 font-black text-xl">{endAge} <small className="text-xs font-normal">歲</small></span></div>
-                                    <input type="range" min={retireAge + 1} max="110" value={endAge} onChange={(e) => handleEndAgeChange(e.target.value)} className="w-full text-gray-400" />
-                                </div>
+                                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100"><div className="flex justify-between mb-1"><span className="font-bold text-gray-600 text-sm flex items-center"><i className="fas fa-user mr-2 text-indigo-400"></i>現在年紀</span><span className="text-indigo-600 font-black text-xl">{age} <small className="text-xs font-normal">歲</small></span></div><input type="range" min="20" max="65" value={age} onChange={(e) => handleAgeChange(e.target.value)} className="w-full text-indigo-500" /></div>
+                                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100"><div className="flex justify-between mb-1"><span className="font-bold text-gray-600 text-sm flex items-center"><i className="fas fa-flag-checkered mr-2 text-green-400"></i>退休年紀</span><span className="text-green-600 font-black text-xl">{retireAge} <small className="text-xs font-normal">歲</small></span></div><input type="range" min="50" max="75" value={retireAge} onChange={(e) => handleRetireAgeChange(e.target.value)} className="w-full text-green-500" /><div className="text-right text-xs font-bold text-gray-400 mt-1 bg-white inline-block px-2 py-0.5 rounded shadow-sm">距離退休還有 <span className="text-green-500">{yearsToWork}</span> 年</div></div>
+                                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100"><div className="flex justify-between mb-1"><span className="font-bold text-gray-600 text-sm flex items-center"><i className="fas fa-hourglass-end mr-2 text-gray-400"></i>預估壽命</span><span className="text-gray-500 font-black text-xl">{endAge} <small className="text-xs font-normal">歲</small></span></div><input type="range" min={retireAge + 1} max="110" value={endAge} onChange={(e) => handleEndAgeChange(e.target.value)} className="w-full text-gray-400" /></div>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Section 2: Assets */}
                             <div className="card bg-white p-6 rounded-3xl shadow-sm mb-6 border-t-8 border-emerald-400">
                                 <SectionTitle icon="fa-wallet" title="目前動產" colorClass="from-emerald-400 to-teal-600" />
                                 <div className="space-y-4">
                                     <NumberInput label="現金 / 定存" value={assets.cash} onChange={(v) => setAssets({...assets, cash: v})} />
                                     <NumberInput label="投資淨值" value={assets.invest} onChange={(v) => setAssets({...assets, invest: v})} tooltip="基金 / 股票 / 債劵 / 加密貨幣 / 黃金" />
                                     <NumberInput label="儲蓄險保單價值" value={assets.insurance} onChange={(v) => setAssets({...assets, insurance: v})} />
-                                    <div className="mt-6">
-                                        <ResultBox label="動產總計" value={totalAssets} highlight={true} theme="green" />
-                                    </div>
+                                    <div className="mt-6"><ResultBox label="動產總計" value={totalAssets} highlight={true} theme="green" /></div>
                                 </div>
                             </div>
-
-                            {/* Section 3: Income */}
                             <div className="card bg-white p-6 rounded-3xl shadow-sm mb-6 border-t-8 border-amber-400">
                                 <SectionTitle icon="fa-coins" title="目前收入" colorClass="from-amber-400 to-orange-500" />
                                 <div className="space-y-4">
                                     <NumberInput label="月薪資收入" value={income.monthlySalary} onChange={(v) => setIncome({...income, monthlySalary: v})} />
                                     <NumberInput label="月配息 / 被動收入" value={income.monthlyPassive} onChange={(v) => setIncome({...income, monthlyPassive: v})} />
                                     <NumberInput label="年度其他獎金" value={income.yearlyBonus} onChange={(v) => setIncome({...income, yearlyBonus: v})} />
-                                    
-                                    <div className="bg-amber-50 p-4 rounded-xl text-sm text-amber-900 border border-amber-100 font-mono flex justify-between items-center shadow-sm">
-                                        <span>目前年收入估算</span>
-                                        <span className="font-bold text-lg">{annualIncome.toFixed(1)} 萬</span>
-                                    </div>
-                                    <div className="mt-6">
-                                        <ResultBox label="退休前潛在總收入" value={totalFutureIncome} subtext={`年收入 × ${yearsToWork} 年`} theme="yellow" />
-                                    </div>
+                                    <div className="bg-amber-50 p-4 rounded-xl text-sm text-amber-900 border border-amber-100 font-mono flex justify-between items-center shadow-sm"><span>目前年收入估算</span><span className="font-bold text-lg">{annualIncome.toFixed(1)} 萬</span></div>
+                                    <div className="mt-6"><ResultBox label="退休前潛在總收入" value={totalFutureIncome} subtext={`年收入 × ${yearsToWork} 年`} theme="yellow" /></div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Section 4: Expenses */}
+                        {/* Section 4: Expenses - Dynamic Lists Logic */}
                         <div className="card bg-white p-6 md:p-8 rounded-3xl shadow-sm mb-8 border-t-8 border-rose-400">
                             <SectionTitle icon="fa-file-invoice-dollar" title="支出分析" colorClass="from-rose-400 to-pink-600" />
-                            
-                            {/* Annual Income Display for Budget Context */}
                             <div className="mb-6 flex items-center justify-between bg-rose-50 p-4 rounded-xl border border-rose-100 shadow-sm">
-                                <div className="flex items-center text-rose-800 font-bold">
-                                    <i className="fas fa-coins mr-2 text-rose-500"></i>
-                                    目前總年收 (預算基準)
-                                </div>
-                                <div className="text-2xl font-black text-rose-600">
-                                    {annualIncome.toFixed(1)} <span className="text-base text-rose-400">萬</span>
-                                </div>
+                                <div className="flex items-center text-rose-800 font-bold"><i className="fas fa-coins mr-2 text-rose-500"></i>目前總年收 (預算基準)</div>
+                                <div className="text-2xl font-black text-rose-600">{annualIncome.toFixed(1)} <span className="text-base text-rose-400">萬</span></div>
                             </div>
                             
-                            {/* A. Regular Expenses */}
                             <div className="mb-8">
-                                <h3 className="font-bold text-gray-700 mb-4 border-l-4 border-yellow-400 pl-3 text-lg flex items-center">
-                                    <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded mr-2 text-xs">PART A</span> 常態性支出
-                                </h3>
+                                <h3 className="font-bold text-gray-700 mb-4 border-l-4 border-yellow-400 pl-3 text-lg flex items-center"><span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded mr-2 text-xs">PART A</span> 常態性支出</h3>
                                 <div className="bg-slate-50 p-6 rounded-2xl space-y-6 border border-slate-100">
-                                    <div>
-                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">理財儲蓄 & 保障 (固定)</div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <NumberInput 
-                                                label={
-                                                    <>
-                                                        定期定額投資 (月)
-                                                        <span className="ml-2 bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm align-middle whitespace-nowrap transform hover:scale-105 transition-transform">
-                                                            <i className="fas fa-rocket mr-1"></i>資產加速帳戶
-                                                        </span>
-                                                    </>
-                                                } 
-                                                value={coreExpenses.invest} 
-                                                onChange={(v) => setCoreExpenses({...coreExpenses, invest: v})}
-                                                tooltip="基金/股票/ETF/債劵/黃金/加密貨幣等" 
-                                            />
-                                            
-                                            <NumberInput 
-                                                label={
-                                                    <>
-                                                        儲蓄險 (年) 
-                                                        <span className="ml-2 bg-emerald-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm align-middle whitespace-nowrap transform hover:scale-105 transition-transform">
-                                                            <i className="fas fa-piggy-bank mr-1"></i>退休安全帳戶
-                                                        </span>
-                                                    </>
-                                                }
-                                                value={coreExpenses.savings} 
-                                                onChange={(v) => setCoreExpenses({...coreExpenses, savings: v})}
-                                                tooltip="單純利變型、分紅保單或還本型重大傷病險" 
-                                            />
-                                            
-                                            <NumberInput 
-                                                label={
-                                                    <>
-                                                        醫療險 (年)
-                                                        <span className="ml-2 bg-blue-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm align-middle whitespace-nowrap transform hover:scale-105 transition-transform">
-                                                            <i className="fas fa-shield-alt mr-1"></i>保障帳戶
-                                                        </span>
-                                                    </>
-                                                }
-                                                value={coreExpenses.insurance} 
-                                                onChange={(v) => setCoreExpenses({...coreExpenses, insurance: v})}
-                                                tooltip="包含 一般醫療險、防癌險、意外險、消費型重大傷病險和長照失能險" 
-                                            />
-
-                                             <NumberInput 
-                                                label="一般備用金儲蓄 (月)"
-                                                value={coreExpenses.emergency} 
-                                                onChange={(v) => setCoreExpenses({...coreExpenses, emergency: v})}
-                                                tooltip="緊急預備金，至少要準備3-6個月" 
-                                            />
+                                    <div className="space-y-4">
+                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">理財儲蓄 & 保障</div>
+                                        <div className="space-y-2">
+                                            {investItems.map(item => (
+                                                <div key={item.id} className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-2 bg-white p-3 rounded-xl border border-amber-100 shadow-sm">
+                                                    <div className="md:w-32 font-bold text-amber-600 text-sm flex items-center"><i className="fas fa-rocket mr-2"></i>定期定額<div className="tooltip ml-1"><i className="fas fa-question-circle text-gray-300"></i><span className="tooltiptext">基金/股票/ETF/債劵/黃金/加密貨幣等</span></div></div>
+                                                    <input type="text" value={item.name} onChange={(e) => updateItem(setInvestItems, investItems, item.id, 'name', e.target.value)} className="flex-1 text-sm border-b border-gray-200 outline-none" placeholder="項目名稱" />
+                                                    <div className="custom-input-group w-32"><input type="number" value={item.value} onChange={(e) => updateItem(setInvestItems, investItems, item.id, 'value', e.target.value)} /><span>萬/月</span></div>
+                                                    <div className="flex items-center space-x-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded"><span>至</span><input type="number" className="w-8 bg-transparent border-b border-gray-300 text-center" value={item.investUntilAge} onChange={(e) => updateItem(setInvestItems, investItems, item.id, 'investUntilAge', e.target.value)} /><span>歲</span></div>
+                                                    <button onClick={() => removeItem(setInvestItems, investItems, item.id)} className="text-gray-300 hover:text-red-500"><i className="fas fa-times"></i></button>
+                                                </div>
+                                            ))}
+                                            <button onClick={addInvestItem} className="text-xs text-amber-600 font-bold hover:underline ml-2"><i className="fas fa-plus"></i> 新增定期定額</button>
                                         </div>
-                                        
-                                        {/* Subtotal for Savings & Protection - Style Matched to Part B Total */}
-                                        <div className="mt-6">
-                                            <ResultBox 
-                                                label="理財與保障年支出小計" 
-                                                value={annualExpSavingsAndProtection} 
-                                                subtext="資產累積 + 風險轉嫁" 
-                                                theme="yellow"
-                                            />
+                                        <div className="space-y-2 mt-4">
+                                            {savingsItems.map(item => (
+                                                <div key={item.id} className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-2 bg-white p-3 rounded-xl border border-emerald-100 shadow-sm">
+                                                    <div className="md:w-32 font-bold text-emerald-600 text-sm flex items-center"><i className="fas fa-piggy-bank mr-2"></i>儲蓄險<div className="tooltip ml-1"><i className="fas fa-question-circle text-gray-300"></i><span className="tooltiptext">單純利變型、分紅保單或還本型重大傷病險</span></div></div>
+                                                    <input type="text" value={item.name} onChange={(e) => updateItem(setSavingsItems, savingsItems, item.id, 'name', e.target.value)} className="flex-1 text-sm border-b border-gray-200 outline-none" placeholder="項目名稱" />
+                                                    <div className="custom-input-group w-32"><input type="number" value={item.value} onChange={(e) => updateItem(setSavingsItems, savingsItems, item.id, 'value', e.target.value)} /><span>萬/年</span></div>
+                                                    <div className="flex items-center space-x-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded"><span>剩</span><input type="number" className="w-8 bg-transparent border-b border-gray-300 text-center" value={item.yearsRemaining} onChange={(e) => updateItem(setSavingsItems, savingsItems, item.id, 'yearsRemaining', e.target.value)} /><span>年</span></div>
+                                                    <button onClick={() => removeItem(setSavingsItems, savingsItems, item.id)} className="text-gray-300 hover:text-red-500"><i className="fas fa-times"></i></button>
+                                                </div>
+                                            ))}
+                                            <button onClick={addSavingsItem} className="text-xs text-emerald-600 font-bold hover:underline ml-2"><i className="fas fa-plus"></i> 新增儲蓄險</button>
                                         </div>
+                                        <div className="space-y-2 mt-4">
+                                            {insuranceItems.map(item => (
+                                                <div key={item.id} className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-2 bg-white p-3 rounded-xl border border-blue-100 shadow-sm">
+                                                    <div className="md:w-32 font-bold text-blue-600 text-sm flex items-center"><i className="fas fa-shield-alt mr-2"></i>醫療險<div className="tooltip ml-1"><i className="fas fa-question-circle text-gray-300"></i><span className="tooltiptext">包含 一般醫療險、防癌險、意外險、消費型重大傷病險和長照失能險</span></div></div>
+                                                    <input type="text" value={item.name} onChange={(e) => updateItem(setInsuranceItems, insuranceItems, item.id, 'name', e.target.value)} className="flex-1 text-sm border-b border-gray-200 outline-none" placeholder="項目名稱" />
+                                                    <div className="custom-input-group w-32"><input type="number" value={item.value} onChange={(e) => updateItem(setInsuranceItems, insuranceItems, item.id, 'value', e.target.value)} /><span>萬/年</span></div>
+                                                    <div className="flex items-center space-x-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded"><span>繳至</span><input type="number" className="w-8 bg-transparent border-b border-gray-300 text-center" value={item.payUntilAge} onChange={(e) => updateItem(setInsuranceItems, insuranceItems, item.id, 'payUntilAge', e.target.value)} /><span>歲</span></div>
+                                                    <button onClick={() => removeItem(setInsuranceItems, insuranceItems, item.id)} className="text-gray-300 hover:text-red-500"><i className="fas fa-times"></i></button>
+                                                </div>
+                                            ))}
+                                            <button onClick={addInsuranceItem} className="text-xs text-blue-600 font-bold hover:underline ml-2"><i className="fas fa-plus"></i> 新增醫療險</button>
+                                        </div>
+                                        <div className="mt-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                                            <div className="flex items-center text-sm font-bold text-gray-600"><i className="fas fa-life-ring mr-2 text-gray-400"></i>一般備用金儲蓄 (月)<div className="tooltip ml-2"><i className="fas fa-question-circle text-gray-300"></i><span className="tooltiptext">緊急預備金，至少要準備3-6個月，計算至退休前</span></div></div>
+                                            <div className="custom-input-group w-32"><input type="number" value={coreExpenses.emergency} onChange={(e) => setCoreExpenses({...coreExpenses, emergency: e.target.value})} /><span>萬</span></div>
+                                        </div>
+                                        <div className="mt-6"><ResultBox label="理財與保障年支出小計" value={annualExpSavingsAndProtection} subtext="資產累積 + 風險轉嫁" theme="yellow" /></div>
                                     </div>
 
+                                    {/* Living Expenses Section (Same as before) */}
                                     <div className="pt-4 border-t border-slate-200">
                                         <div className="flex flex-col md:flex-row justify-between items-center mb-4">
                                             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 md:mb-0">生活消費</div>
                                             <div className="flex bg-white rounded-lg p-1 shadow-sm border border-gray-200">
-                                                <button 
-                                                    onClick={() => setLivingInputMode('detail')}
-                                                    className={`text-xs px-4 py-1.5 rounded-md transition-all ${livingInputMode === 'detail' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
-                                                >
-                                                    詳細項目
-                                                </button>
-                                                <button 
-                                                    onClick={() => setLivingInputMode('simple')}
-                                                    className={`text-xs px-4 py-1.5 rounded-md transition-all ${livingInputMode === 'simple' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
-                                                >
-                                                    快速總額
-                                                </button>
+                                                <button onClick={() => setLivingInputMode('detail')} className={`text-xs px-4 py-1.5 rounded-md transition-all ${livingInputMode === 'detail' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>詳細項目</button>
+                                                <button onClick={() => setLivingInputMode('simple')} className={`text-xs px-4 py-1.5 rounded-md transition-all ${livingInputMode === 'simple' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>快速總額</button>
                                             </div>
                                         </div>
-                                        
                                         {livingInputMode === 'detail' ? (
                                             <>
-                                                {livingItems.length === 0 && (
-                                                    <div className="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl bg-white/50">
-                                                        <i className="fas fa-receipt text-2xl mb-2 opacity-50"></i>
-                                                        <p>尚未新增生活支出項目</p>
-                                                    </div>
-                                                )}
-
+                                                {livingItems.length === 0 && <div className="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl bg-white/50"><p>尚未新增生活支出項目</p></div>}
                                                 <div className="space-y-3">
                                                     {livingItems.map((item) => (
-                                                        <div key={item.id} className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-3 bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:border-blue-300 transition-colors">
-                                                            <div className="md:w-1/4">
-                                                                <select 
-                                                                    className="w-full text-sm border-gray-200 bg-gray-50 border rounded-lg p-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all font-medium text-gray-700"
-                                                                    value={item.category}
-                                                                    onChange={(e) => updateLivingItem(item.id, 'category', e.target.value)}
-                                                                >
-                                                                    {LIVING_CATEGORIES.map(cat => (
-                                                                        <option key={cat.id} value={cat.name}>{cat.name}</option>
-                                                                    ))}
-                                                                </select>
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <input 
-                                                                    type="text" 
-                                                                    placeholder="項目名稱"
-                                                                    className="w-full text-sm border-b-2 border-gray-100 p-2 focus:border-blue-500 outline-none bg-transparent transition-colors placeholder-gray-300"
-                                                                    value={item.name}
-                                                                    onChange={(e) => updateLivingItem(item.id, 'name', e.target.value)}
-                                                                />
-                                                            </div>
-                                                            <div className="custom-input-group md:w-32 bg-gray-50">
-                                                                <input 
-                                                                    type="number" 
-                                                                    step="any" 
-                                                                    placeholder="金額"
-                                                                    value={item.value} 
-                                                                    onChange={(e) => updateLivingItem(item.id, 'value', e.target.value)} 
-                                                                />
-                                                            </div>
-                                                            <div className="md:w-24">
-                                                                <select 
-                                                                    className="w-full text-xs border rounded-lg p-2 bg-gray-50 text-gray-600"
-                                                                    value={item.period}
-                                                                    onChange={(e) => updateLivingItem(item.id, 'period', e.target.value)}
-                                                                >
-                                                                    <option value="month">萬/月</option>
-                                                                    <option value="year">萬/年</option>
-                                                                </select>
-                                                            </div>
-                                                            <button onClick={() => removeLivingItem(item.id)} className="text-gray-300 hover:text-red-500 px-2 transition-colors">
-                                                                <i className="fas fa-times-circle text-lg"></i>
-                                                            </button>
+                                                        <div key={item.id} className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-3 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                                                            <div className="md:w-1/4"><select className="w-full text-sm border-gray-200 bg-gray-50 border rounded-lg p-2 outline-none" value={item.category} onChange={(e) => updateLivingItem(item.id, 'category', e.target.value)}>{LIVING_CATEGORIES.map(cat => (<option key={cat.id} value={cat.name}>{cat.name}</option>))}</select></div>
+                                                            <div className="flex-1"><input type="text" placeholder="項目名稱" className="w-full text-sm border-b-2 border-gray-100 p-2 outline-none" value={item.name} onChange={(e) => updateLivingItem(item.id, 'name', e.target.value)}/></div>
+                                                            <div className="custom-input-group md:w-32 bg-gray-50"><input type="number" value={item.value} onChange={(e) => updateLivingItem(item.id, 'value', e.target.value)} /></div>
+                                                            <div className="md:w-24"><select className="w-full text-xs border rounded-lg p-2 bg-gray-50" value={item.period} onChange={(e) => updateLivingItem(item.id, 'period', e.target.value)}><option value="month">萬/月</option><option value="year">萬/年</option></select></div>
+                                                            <button onClick={() => removeLivingItem(item.id)} className="text-gray-300 hover:text-red-500 px-2"><i className="fas fa-times-circle text-lg"></i></button>
                                                         </div>
                                                     ))}
                                                 </div>
-
-                                                {/* Centered Add Button */}
-                                                <div className="flex justify-center mt-6">
-                                                    <button onClick={addLivingItem} className="group relative text-base md:text-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-3 rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300 font-bold flex items-center shadow-md">
-                                                        <span className="absolute w-full h-full bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></span>
-                                                        <i className="fas fa-plus-circle mr-2 text-xl"></i>新增支出項目
-                                                    </button>
-                                                </div>
+                                                <div className="flex justify-center mt-6"><button onClick={addLivingItem} className="group relative text-base md:text-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-3 rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300 font-bold flex items-center shadow-md"><span className="absolute w-full h-full bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></span><i className="fas fa-plus-circle mr-2 text-xl"></i>新增支出項目</button></div>
                                             </>
                                         ) : (
                                             <div className="bg-white p-6 rounded-xl border border-blue-100 shadow-sm animate-fade-in-down">
-                                                <NumberInput 
-                                                    label="每月生活總支出 (萬/月)" 
-                                                    value={simpleMonthlyLiving} 
-                                                    onChange={(v) => setSimpleMonthlyLiving(v)}
-                                                    placeholder="例如: 3.5"
-                                                />
-                                                <div className="text-xs text-blue-400 mt-2 flex items-center bg-blue-50 p-2 rounded">
-                                                    <i className="fas fa-magic mr-2"></i>
-                                                    懶人模式：直接以此數值計算，忽略詳細清單。
-                                                </div>
+                                                <NumberInput label="每月生活總支出 (萬/月)" value={simpleMonthlyLiving} onChange={(v) => setSimpleMonthlyLiving(v)} placeholder="例如: 3.5"/>
                                             </div>
                                         )}
-
-                                        <div className="mt-6">
-                                            <ResultBox 
-                                                label="生活年支出小計" 
-                                                value={annualExpLiving} 
-                                                subtext="日常開銷 + 年度稅費" 
-                                                theme="blue"
-                                            />
-                                        </div>
-
-                                        {/* Warning for High Living Expenses */}
-                                        {annualIncome > 0 && (annualExpLiving / annualIncome) > 0.7 && (
-                                            <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-start animate-pulse">
-                                                <i className="fas fa-exclamation-triangle mt-1 mr-2 text-red-500 text-lg"></i>
-                                                <div>
-                                                    <span className="font-bold text-red-800 text-base">警示：生活消費佔比過高 ({((annualExpLiving / annualIncome) * 100).toFixed(0)}%)</span>
-                                                    <div className="mt-1">建議控制在 60-70% 以內，否則將嚴重壓縮理財與保障空間，影響退休進度。</div>
-                                                </div>
-                                            </div>
-                                        )}
+                                        <div className="mt-6"><ResultBox label="生活年支出小計" value={annualExpLiving} subtext="日常開銷 + 年度稅費" theme="blue"/></div>
+                                        {annualIncome > 0 && (annualExpLiving / annualIncome) > 0.7 && <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-start animate-pulse"><i className="fas fa-exclamation-triangle mt-1 mr-2 text-red-500 text-lg"></i><div><span className="font-bold text-red-800 text-base">警示：生活消費佔比過高 ({((annualExpLiving / annualIncome) * 100).toFixed(0)}%)</span><div className="mt-1">建議控制在 60-70% 以內，否則將嚴重壓縮理財與保障空間，影響退休進度。</div></div></div>}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* B. Dreams */}
+                            {/* B. Dreams - Keeping existing structure */}
                             <div>
-                                <h3 className="font-bold text-gray-700 mb-4 border-l-4 border-pink-400 pl-3 text-lg flex items-center">
-                                    <span className="bg-pink-100 text-pink-700 px-2 py-1 rounded mr-2 text-xs">PART B</span> 夢想與未來大額支出
-                                </h3>
+                                <h3 className="font-bold text-gray-700 mb-4 border-l-4 border-pink-400 pl-3 text-lg flex items-center"><span className="bg-pink-100 text-pink-700 px-2 py-1 rounded mr-2 text-xs">PART B</span> 夢想與未來大額支出</h3>
                                 <div className="bg-pink-50/50 p-6 rounded-2xl border border-pink-100">
                                     <div className="border-b border-pink-200 pb-6 mb-6">
                                         <div className="flex items-center justify-between mb-4">
-                                            <div className="font-bold text-gray-700 flex items-center text-lg">
-                                                <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center mr-2">
-                                                    <i className="fas fa-home text-pink-600"></i>
-                                                </div>
-                                                購房計畫試算
-                                            </div>
-                                            <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                                                <input 
-                                                    type="checkbox" 
-                                                    name="toggle" 
-                                                    id="house-toggle" 
-                                                    className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                                                    checked={includeHousePlan}
-                                                    onChange={(e) => setIncludeHousePlan(e.target.checked)}
-                                                />
-                                                <label htmlFor="house-toggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors ${includeHousePlan ? 'bg-pink-500' : 'bg-gray-300'}`}></label>
-                                            </div>
+                                            <div className="font-bold text-gray-700 flex items-center text-lg"><div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center mr-2"><i className="fas fa-home text-pink-600"></i></div>購房計畫試算</div>
+                                            <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in"><input type="checkbox" name="toggle" id="house-toggle" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked={includeHousePlan} onChange={(e) => setIncludeHousePlan(e.target.checked)}/><label htmlFor="house-toggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors ${includeHousePlan ? 'bg-pink-500' : 'bg-gray-300'}`}></label></div>
                                         </div>
-
                                         {includeHousePlan ? (
                                             <div className="animate-fade-in-down bg-white p-4 rounded-xl border border-pink-100 shadow-sm">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -915,99 +937,28 @@
                                                     <NumberInput label="貸款年期 (年)" value={housePlan.loanYears} onChange={(v) => setHousePlan({...housePlan, loanYears: v})} suffix="年" />
                                                 </div>
                                                 <div className="bg-pink-50 p-4 rounded-lg text-sm mt-4 grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <div className="text-gray-500 text-xs">頭期款 (一次付)</div>
-                                                        <div className="font-black text-lg text-gray-800">{houseDownPayment.toFixed(1)} 萬</div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-gray-500 text-xs">每月還款</div>
-                                                        <div className="font-black text-lg text-pink-600">{monthlyMortgage.toFixed(2)} 萬</div>
-                                                    </div>
-                                                    <div className="col-span-2 pt-2 border-t border-pink-200 flex justify-between items-center">
-                                                        <span className="text-gray-500 text-xs">本利和總支出 (生涯總成本)</span>
-                                                        <span className="font-bold text-pink-700">{totalHouseLifetimeCost.toFixed(1)} 萬</span>
-                                                    </div>
+                                                    <div><div className="text-gray-500 text-xs">頭期款 (一次付)</div><div className="font-black text-lg text-gray-800">{houseDownPayment.toFixed(1)} 萬</div></div>
+                                                    <div><div className="text-gray-500 text-xs">每月還款</div><div className="font-black text-lg text-pink-600">{monthlyMortgage.toFixed(2)} 萬</div></div>
+                                                    <div className="col-span-2 pt-2 border-t border-pink-200 flex justify-between items-center"><span className="text-gray-500 text-xs">本利和總支出 (生涯總成本)</span><span className="font-bold text-pink-700">{totalHouseLifetimeCost.toFixed(1)} 萬</span></div>
                                                 </div>
                                             </div>
-                                        ) : (
-                                            <div className="text-sm text-gray-400 italic pl-10 flex items-center">
-                                                <i className="fas fa-bed mr-2"></i> 目前未包含購房計畫，開啟後可進行試算。
-                                            </div>
-                                        )}
+                                        ) : (<div className="text-sm text-gray-400 italic pl-10 flex items-center"><i className="fas fa-bed mr-2"></i> 目前未包含購房計畫，開啟後可進行試算。</div>)}
                                     </div>
-
                                     <div>
-                                        <div className="flex justify-between items-center mb-3">
-                                            <div className="text-sm font-bold text-pink-700 uppercase tracking-wider flex items-center">
-                                                <i className="fas fa-gift mr-2"></i> 其他夢想
-                                            </div>
-                                        </div>
-                                        
-                                        {dreamItems.length === 0 && (
-                                            <div className="text-center py-6 text-gray-400 border-2 border-dashed border-pink-200/50 rounded-xl bg-white/30">
-                                                <p>尚未新增夢想項目</p>
-                                            </div>
-                                        )}
-                                        
+                                        <div className="flex justify-between items-center mb-3"><div className="text-sm font-bold text-pink-700 uppercase tracking-wider flex items-center"><i className="fas fa-gift mr-2"></i> 其他夢想</div></div>
+                                        {dreamItems.length === 0 && <div className="text-center py-6 text-gray-400 border-2 border-dashed border-pink-200/50 rounded-xl bg-white/30"><p>尚未新增夢想項目</p></div>}
                                         <div className="space-y-3">
                                             {dreamItems.map((item) => (
                                                 <div key={item.id} className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-3 bg-white p-3 rounded-xl border border-pink-100 shadow-sm hover:border-pink-300 transition-colors">
-                                                    <div className={`${item.category === '其他' ? 'md:w-1/4' : 'flex-1'}`}>
-                                                        <select 
-                                                            className="w-full text-sm border-pink-100 border rounded-lg p-2 bg-pink-50/50 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none text-pink-700 font-medium"
-                                                            value={item.category}
-                                                            onChange={(e) => updateDreamItem(item.id, 'category', e.target.value)}
-                                                        >
-                                                            {DREAM_CATEGORIES.map(cat => (
-                                                                <option key={cat.id} value={cat.name}>{cat.name}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                    {item.category === '其他' && (
-                                                        <div className="flex-1">
-                                                            <input 
-                                                                type="text" 
-                                                                placeholder="項目名稱"
-                                                                className="w-full text-sm border-b border-pink-200 p-2 focus:border-pink-500 outline-none"
-                                                                value={item.name}
-                                                                onChange={(e) => updateDreamItem(item.id, 'name', e.target.value)}
-                                                            />
-                                                        </div>
-                                                    )}
-                                                    <div className="custom-input-group md:w-32">
-                                                        <input 
-                                                            type="number" 
-                                                            step="any" 
-                                                            placeholder="金額"
-                                                            value={item.value} 
-                                                            onChange={(e) => updateDreamItem(item.id, 'value', e.target.value)} 
-                                                        />
-                                                        <span>萬</span>
-                                                    </div>
-                                                    <button onClick={() => removeDreamItem(item.id)} className="text-gray-300 hover:text-red-500 px-2 transition">
-                                                        <i className="fas fa-times-circle text-lg"></i>
-                                                    </button>
+                                                    <div className={`${item.category === '其他' ? 'md:w-1/4' : 'flex-1'}`}><select className="w-full text-sm border-pink-100 border rounded-lg p-2 bg-pink-50/50 outline-none text-pink-700" value={item.category} onChange={(e) => updateDreamItem(item.id, 'category', e.target.value)}>{DREAM_CATEGORIES.map(cat => (<option key={cat.id} value={cat.name}>{cat.name}</option>))}</select></div>
+                                                    {item.category === '其他' && <div className="flex-1"><input type="text" placeholder="項目名稱" className="w-full text-sm border-b border-pink-200 outline-none" value={item.name} onChange={(e) => updateDreamItem(item.id, 'name', e.target.value)}/></div>}
+                                                    <div className="custom-input-group md:w-32"><input type="number" value={item.value} onChange={(e) => updateDreamItem(item.id, 'value', e.target.value)} /><span>萬</span></div>
+                                                    <button onClick={() => removeDreamItem(item.id)} className="text-gray-300 hover:text-red-500 px-2"><i className="fas fa-times-circle text-lg"></i></button>
                                                 </div>
                                             ))}
                                         </div>
-
-                                        {/* Centered Add Button */}
-                                        <div className="flex justify-center mt-6">
-                                            <button onClick={addDreamItem} className="group relative text-base md:text-lg bg-gradient-to-r from-pink-500 to-rose-500 text-white px-8 py-3 rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300 font-bold flex items-center shadow-md">
-                                                 <span className="absolute w-full h-full bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></span>
-                                                <i className="fas fa-plus-circle mr-2 text-xl"></i>新增夢想
-                                            </button>
-                                        </div>
-
-                                        <div className="mt-6">
-                                            <ResultBox 
-                                                label="夢想與未來支出總計" 
-                                                value={totalDreamsAndFutureExpenses} 
-                                                subtext="購房頭期 + 房貸總息 + 夢想清單" 
-                                                theme="pink"
-                                                highlight={true}
-                                            />
-                                        </div>
+                                        <div className="flex justify-center mt-6"><button onClick={addDreamItem} className="group relative text-base md:text-lg bg-gradient-to-r from-pink-500 to-rose-500 text-white px-8 py-3 rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300 font-bold flex items-center shadow-md"><span className="absolute w-full h-full bg-white opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></span><i className="fas fa-plus-circle mr-2 text-xl"></i>新增夢想</button></div>
+                                        <div className="mt-6"><ResultBox label="夢想與未來支出總計" value={totalDreamsAndFutureExpenses} subtext="購房頭期 + 房貸總息 + 夢想清單" theme="pink" highlight={true} /></div>
                                     </div>
                                 </div>
                             </div>
@@ -1016,101 +967,29 @@
                         {/* Section 5: Ratio Chart */}
                         <div className="card bg-white p-6 md:p-8 rounded-3xl shadow-sm mb-8 border-t-8 border-blue-400">
                             <SectionTitle icon="fa-chart-pie" title="黃金比例檢測 (標準 631 法則)" colorClass="from-blue-400 to-indigo-500" />
-                            
                             <div className="bg-blue-50 border-l-4 border-blue-500 p-3 text-sm text-blue-800 mb-4 rounded-r">
-                                <span className="font-bold">💡 專家建議配置：</span> 
-                                收入的10%為保障，20-40%為儲蓄理財，80-60%為生活花費。
-                                <span className="block text-xs mt-1 text-blue-600 opacity-80">（註：此檢測僅針對常態性收支，不包含夢想清單。若收支有結餘，將自動計入「儲蓄理財」比例。）</span>
+                                <span className="font-bold">💡 專家建議配置：</span> 收入的10%為保障，20-40%為儲蓄理財，80-60%為生活花費。<span className="block text-xs mt-1 text-blue-600 opacity-80">（註：此檢測僅針對常態性收支，不包含夢想清單。若收支有結餘，將自動計入「儲蓄理財」比例。）</span>
                             </div>
-
-                            <div className="mb-4 text-center mt-6">
-                                <span className="text-gray-500 text-sm">此階段年收入總額</span>
-                                <div className="text-3xl font-black text-gray-800">{annualIncome.toFixed(1)} <span className="text-lg">萬</span></div>
-                            </div>
-
+                            <div className="mb-4 text-center mt-6"><span className="text-gray-500 text-sm">此階段年收入總額</span><div className="text-3xl font-black text-gray-800">{annualIncome.toFixed(1)} <span className="text-lg">萬</span></div></div>
                             <div className="flex flex-col md:flex-row items-center justify-between gap-8">
                                  <div className="w-full">
                                     <div className="flex justify-between text-sm mb-2 text-gray-600 font-bold">
-                                        {/* Dynamic labels position */}
-                                        <span style={{width: `${Math.max(visRatioProtection, 15)}%`, textAlign: 'center'}}>
-                                            <div>保障</div>
-                                            <div className="text-xs font-normal">{annualExpProtection.toFixed(1)}萬 ({ratioProtection.toFixed(0)}%)</div>
-                                        </span>
-                                        <span style={{width: `${Math.max(visRatioSavings, 15)}%`, textAlign: 'center'}}>
-                                            <div>儲蓄理財</div>
-                                            <div className="text-xs font-normal">{totalSavingsForRatio.toFixed(1)}萬 ({ratioSavings.toFixed(0)}%)</div>
-                                        </span>
-                                        <span style={{width: `${Math.max(visRatioLiving, 15)}%`, textAlign: 'center'}}>
-                                            <div>生活</div>
-                                            <div className="text-xs font-normal">{annualExpLiving.toFixed(1)}萬 ({ratioLiving.toFixed(0)}%)</div>
-                                        </span>
+                                        <span style={{width: `${Math.max(visRatioProtection, 15)}%`, textAlign: 'center'}}><div>保障</div><div className="text-xs font-normal">{annualExpProtectionRaw.toFixed(1)}萬 ({ratioProtection.toFixed(0)}%)</div></span>
+                                        <span style={{width: `${Math.max(visRatioSavings, 15)}%`, textAlign: 'center'}}><div>儲蓄理財</div><div className="text-xs font-normal">{totalSavingsForRatio.toFixed(1)}萬 ({ratioSavings.toFixed(0)}%)</div></span>
+                                        <span style={{width: `${Math.max(visRatioLiving, 15)}%`, textAlign: 'center'}}><div>生活</div><div className="text-xs font-normal">{annualExpLiving.toFixed(1)}萬 ({ratioLiving.toFixed(0)}%)</div></span>
                                     </div>
                                     <div className="w-full h-8 flex rounded-full bg-gray-200">
-                                        <div style={{width: `${visRatioProtection}%`}} className="bg-gray-500 h-full flex items-center justify-center text-xs text-white transition-all duration-500 tooltip cursor-pointer relative group chart-tooltip rounded-l-full" title="保障" tabIndex="0">
-                                            {ratioProtection > 5 && `${ratioProtection.toFixed(0)}%`}
-                                            <div className="tooltiptext">
-                                                {renderChartTooltip('protection')}
-                                            </div>
-                                        </div>
-                                        <div style={{width: `${visRatioSavings}%`}} className="bg-yellow-400 h-full flex items-center justify-center text-xs text-white font-bold transition-all duration-500 tooltip cursor-pointer relative group chart-tooltip" title="儲蓄理財" tabIndex="0">
-                                            {ratioSavings > 5 && `${ratioSavings.toFixed(0)}%`}
-                                            <div className="tooltiptext">
-                                                {renderChartTooltip('savings')}
-                                            </div>
-                                        </div>
-                                        <div style={{width: `${visRatioLiving}%`}} className={`h-full flex items-center justify-center text-xs text-white transition-all duration-500 tooltip cursor-pointer relative group chart-tooltip rounded-r-full ${ratioLiving > 80 ? 'bg-red-500' : 'bg-blue-400'}`} title="生活" tabIndex="0">
-                                            {ratioLiving > 5 && `${ratioLiving.toFixed(0)}%`}
-                                            <div className="tooltiptext">
-                                                {renderChartTooltip('living')}
-                                            </div>
-                                        </div>
+                                        <div style={{width: `${visRatioProtection}%`}} className="bg-gray-500 h-full flex items-center justify-center text-xs text-white transition-all duration-500 tooltip cursor-pointer relative group chart-tooltip rounded-l-full" title="保障" tabIndex="0"><div className="tooltiptext">{renderChartTooltip('protection')}</div></div>
+                                        <div style={{width: `${visRatioSavings}%`}} className="bg-yellow-400 h-full flex items-center justify-center text-xs text-white font-bold transition-all duration-500 tooltip cursor-pointer relative group chart-tooltip" title="儲蓄理財" tabIndex="0"><div className="tooltiptext">{renderChartTooltip('savings')}</div></div>
+                                        <div style={{width: `${visRatioLiving}%`}} className={`h-full flex items-center justify-center text-xs text-white transition-all duration-500 tooltip cursor-pointer relative group chart-tooltip rounded-r-full ${ratioLiving > 80 ? 'bg-red-500' : 'bg-blue-400'}`} title="生活" tabIndex="0"><div className="tooltiptext">{renderChartTooltip('living')}</div></div>
                                     </div>
-                                    
-                                    {/* Analysis Text */}
                                     <div className="mt-4 bg-slate-50 p-5 rounded-2xl text-sm text-slate-700 border border-slate-200">
                                         <strong className="block mb-2 text-slate-900 text-base"><i className="fas fa-robot mr-2 text-indigo-500"></i>AI 分析建議：</strong>
                                         <ul className="space-y-2">
-                                            {ratioLiving === 0 ? (
-                                                <li className="flex items-start text-red-600 font-bold"><i className="fas fa-exclamation-circle mt-1 mr-2"></i>不要欺騙自己了，你不可能不吃不喝～請把你的生活支出誠實輸入吧！</li>
-                                            ) : null}
-
-                                            {/* Priority 1: Protection */}
-                                            {ratioProtection < 5 ? (
-                                                <li className="flex items-start text-red-600 font-bold"><i className="fas fa-exclamation-circle mt-1 mr-2"></i>保障配置 ({ratioProtection.toFixed(1)}%) 嚴重不足 (&lt;5%)！風險發生時資產將瞬間歸零，請列為最優先處理事項。</li>
-                                            ) : ratioProtection < 8 ? (
-                                                <li className="flex items-start text-orange-500"><i className="fas fa-exclamation-triangle mt-1 mr-2"></i>保障配置 ({ratioProtection.toFixed(1)}%) 偏低 (5-8%)，需注意風險缺口，建議補足醫療或意外險。</li>
-                                            ) : ratioProtection >= 10 ? (
-                                                <li className="flex items-start text-green-600"><i className="fas fa-shield-alt mt-1 mr-2"></i>保障配置 ({ratioProtection.toFixed(1)}%) 達標且具遠見！您的防護網非常堅固。</li>
-                                            ) : (
-                                                <li className="flex items-start text-blue-600"><i className="fas fa-check mt-1 mr-2"></i>保障配置 ({ratioProtection.toFixed(1)}%) 接近標準，維持即可。</li>
-                                            )}
-
-                                            {/* Priority 2: Savings (Renamed) */}
-                                            {ratioSavings < 20 ? (
-                                                <li className="flex items-start text-red-600 font-bold"><i className="fas fa-piggy-bank mt-1 mr-2"></i>儲蓄理財 ({ratioSavings.toFixed(1)}%) 低於 20%，這會嚴重拖累退休進度，請強制執行「先存後花」。</li>
-                                            ) : ratioSavings > 40 && ratioProtection < 10 ? (
-                                                <li className="flex items-start text-orange-600"><i className="fas fa-search-dollar mt-1 mr-2"></i>儲蓄理財 ({ratioSavings.toFixed(1)}%) 雖高 (>40%)，但保障不足 10%。請檢視是否為了儲蓄而讓資產處於裸奔狀態。</li>
-                                            ) : ratioSavings > 30 ? (
-                                                // Check for balance
-                                                ratioProtection < 10 ? (
-                                                    <li className="flex items-start text-yellow-600"><i className="fas fa-balance-scale mt-1 mr-2"></i>儲蓄理財 ({ratioSavings.toFixed(1)}%) 表現優異 (>30%)，但請留意是否擠壓到保障配置。</li>
-                                                ) : (
-                                                    <li className="flex items-start text-green-600"><i className="fas fa-chart-line mt-1 mr-2"></i>儲蓄理財 ({ratioSavings.toFixed(1)}%) 表現優異且保障充足，資產累積速度極快！</li>
-                                                )
-                                            ) : (
-                                                <li className="flex items-start text-green-600"><i className="fas fa-check-circle mt-1 mr-2"></i>儲蓄理財 ({ratioSavings.toFixed(1)}%) 符合標準區間 (20-30%)，穩健累積中。</li>
-                                            )}
-                                            
-                                            {/* Priority 3: Living */}
-                                            {ratioLiving > 80 ? (
-                                                <li className="flex items-start text-red-600 font-bold"><i className="fas fa-fire mt-1 mr-2"></i>嚴重警告：生活支出 ({ratioLiving.toFixed(1)}%) 超過 80%，這將導致幾乎無法退休，請立即進行財務瘦身。</li>
-                                            ) : ratioLiving > 70 ? (
-                                                <li className="flex items-start text-orange-500"><i className="fas fa-exclamation mt-1 mr-2"></i>警告：生活支出 ({ratioLiving.toFixed(1)}%) 超過 70%，稍顯過高，建議檢視非必要開銷。</li>
-                                            ) : ratioLiving < 40 && ratioLiving > 0 ? (
-                                                <li className="flex items-start text-blue-500"><i className="fas fa-mug-hot mt-1 mr-2"></i>生活支出 ({ratioLiving.toFixed(1)}%) 極低。雖然累積資產很快，但別忘了適度犒賞自己。</li>
-                                            ) : ratioLiving > 0 ? (
-                                                <li className="flex items-start text-gray-600"><i className="fas fa-check mt-1 mr-2"></i>生活支出 ({ratioLiving.toFixed(1)}%) 控制在合理範圍。</li>
-                                            ) : null}
+                                            {ratioLiving === 0 ? <li className="flex items-start text-red-600 font-bold"><i className="fas fa-exclamation-circle mt-1 mr-2"></i>不要欺騙自己了，你不可能不吃不喝～請把你的生活支出誠實輸入吧！</li> : null}
+                                            {ratioProtection < 5 ? <li className="flex items-start text-red-600 font-bold"><i className="fas fa-exclamation-circle mt-1 mr-2"></i>保障配置 ({ratioProtection.toFixed(1)}%) 嚴重不足 (&lt;5%)！風險發生時資產將瞬間歸零，請列為最優先處理事項。</li> : ratioProtection < 8 ? <li className="flex items-start text-orange-500"><i className="fas fa-exclamation-triangle mt-1 mr-2"></i>保障配置 ({ratioProtection.toFixed(1)}%) 偏低 (5-8%)，需注意風險缺口，建議補足醫療或意外險。</li> : ratioProtection >= 10 ? <li className="flex items-start text-green-600"><i className="fas fa-shield-alt mt-1 mr-2"></i>保障配置 ({ratioProtection.toFixed(1)}%) 達標且具遠見！您的防護網非常堅固。</li> : <li className="flex items-start text-blue-600"><i className="fas fa-check mt-1 mr-2"></i>保障配置 ({ratioProtection.toFixed(1)}%) 接近標準，維持即可。</li>}
+                                            {ratioSavings < 20 ? <li className="flex items-start text-red-600 font-bold"><i className="fas fa-piggy-bank mt-1 mr-2"></i>儲蓄理財 ({ratioSavings.toFixed(1)}%) 低於 20%，這會嚴重拖累退休進度，請強制執行「先存後花」。</li> : ratioSavings > 40 && ratioProtection < 10 ? <li className="flex items-start text-orange-600"><i className="fas fa-search-dollar mt-1 mr-2"></i>儲蓄理財 ({ratioSavings.toFixed(1)}%) 雖高 (>40%)，但保障不足 10%。請檢視是否為了儲蓄而讓資產處於裸奔狀態。</li> : ratioSavings > 30 ? (ratioProtection < 10 ? <li className="flex items-start text-yellow-600"><i className="fas fa-balance-scale mt-1 mr-2"></i>儲蓄理財 ({ratioSavings.toFixed(1)}%) 表現優異 (>30%)，但請留意是否擠壓到保障配置。</li> : <li className="flex items-start text-green-600"><i className="fas fa-chart-line mt-1 mr-2"></i>儲蓄理財 ({ratioSavings.toFixed(1)}%) 表現優異且保障充足，資產累積速度極快！</li>) : <li className="flex items-start text-green-600"><i className="fas fa-check-circle mt-1 mr-2"></i>儲蓄理財 ({ratioSavings.toFixed(1)}%) 符合標準區間 (20-30%)，穩健累積中。</li>}
+                                            {ratioLiving > 80 ? <li className="flex items-start text-red-600 font-bold"><i className="fas fa-fire mt-1 mr-2"></i>嚴重警告：生活支出 ({ratioLiving.toFixed(1)}%) 超過 80%，這將導致幾乎無法退休，請立即進行財務瘦身。</li> : ratioLiving > 70 ? <li className="flex items-start text-orange-500"><i className="fas fa-exclamation mt-1 mr-2"></i>警告：生活支出 ({ratioLiving.toFixed(1)}%) 超過 70%，稍顯過高，建議檢視非必要開銷。</li> : ratioLiving < 40 && ratioLiving > 0 ? <li className="flex items-start text-blue-500"><i className="fas fa-mug-hot mt-1 mr-2"></i>生活支出 ({ratioLiving.toFixed(1)}%) 極低。雖然累積資產很快，但別忘了適度犒賞自己。</li> : ratioLiving > 0 ? <li className="flex items-start text-gray-600"><i className="fas fa-check mt-1 mr-2"></i>生活支出 ({ratioLiving.toFixed(1)}%) 控制在合理範圍。</li> : null}
                                         </ul>
                                     </div>
                                 </div>
@@ -1119,93 +998,65 @@
 
                         {/* Combined Section 6 & 7: Summary & Advice */}
                         <div className="rounded-3xl shadow-2xl overflow-hidden mb-8">
-                            {/* Part 1: Forecast (Dark) */}
                             <div className="bg-slate-900 text-white p-6 md:p-8 relative">
-                                <SectionTitle icon="fa-flag-checkered" title="導航終點：財務預測" colorClass="from-blue-600 to-indigo-600" textColor="text-white" borderColor="border-slate-700" />
+                                <div className="flex justify-between items-center mb-6 border-b-2 border-slate-700 pb-2">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-lg transform -rotate-3">
+                                            <i className="fas fa-flag-checkered text-lg md:text-xl"></i>
+                                        </div>
+                                        <h2 className="text-xl md:text-2xl font-black text-white tracking-tight">導航終點：財務預測</h2>
+                                    </div>
+                                    <button 
+                                        onClick={() => setIsModalOpen(true)} 
+                                        className="text-blue-400 hover:text-white transition-colors text-sm font-bold flex items-center bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-blue-400"
+                                    >
+                                        <i className="fas fa-calculator mr-2"></i>查看詳細算式
+                                    </button>
+                                </div>
                                 
+                                <div className="mt-2 mb-6 text-sm text-slate-400 flex items-start bg-slate-800/50 p-3 rounded-lg border border-slate-700"><i className="fas fa-info-circle mt-1 mr-2 text-blue-400 flex-shrink-0"></i><span>這邊的金額不包含勞退和勞保。勞退和勞保的預估金額，請到『<a href="https://edesk.bli.gov.tw/" target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:text-white underline transition-colors">勞保局E化服務系統</a>』查詢（或預約我協助您查詢）。</span></div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                                     <div className="p-6 bg-slate-800/50 rounded-2xl border border-slate-700 backdrop-blur-sm">
                                         <div className="text-slate-400 text-sm mb-1 uppercase tracking-wider font-bold">若收入不變，退休前預估累積資產</div>
-                                        <div className={`text-3xl font-black mt-2 ${projectedAssetsAtRetire < 0 ? 'text-red-400' : 'text-green-400'}`}>
-                                            {projectedAssetsAtRetire.toFixed(1)} 萬
-                                        </div>
-                                        <div className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-700">
-                                            公式：現有資產 + (年淨現金流 × 工作年數) - 頭期款 - 其他夢想
-                                        </div>
+                                        <div className={`text-3xl font-black mt-2 ${projectedAssetsAtRetire < 0 ? 'text-red-400' : 'text-green-400'}`}>{projectedAssetsAtRetire.toFixed(1)} 萬</div>
+                                        <div className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-700">公式：現有資產 + [(理財儲蓄總額(含結餘) × 工作年數) - 頭期款 - 其他夢想] (依各項目年期計算)</div>
                                     </div>
-
                                     <div className="p-6 bg-slate-800/50 rounded-2xl border border-slate-700 backdrop-blur-sm">
                                         <div className="text-slate-400 text-sm mb-1 uppercase tracking-wider font-bold">這輩子預估總花費</div>
-                                        <div className="text-3xl font-bold mt-1 text-yellow-400">
-                                            {totalLifetimeSpend.toFixed(1)} 萬
-                                        </div>
-                                        <div className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-700">
-                                            包含生活費、房貸本利和總額、夢想支出與退休後開銷
-                                        </div>
+                                        <div className="text-3xl font-bold mt-1 text-yellow-400">{totalLifetimeSpend.toFixed(1)} 萬</div>
+                                        <div className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-700">包含生活費 + 保障支出(依年期) + 房貸本利和 + 購房頭期 + 其他夢想</div>
                                     </div>
-
                                     <div className="md:col-span-2 mt-4 p-6 bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl border border-slate-700 shadow-inner">
                                         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                                             <div>
                                                 <div className="text-gray-400 font-bold mb-1">無憂退休缺口</div>
-                                                {gap > 0 ? (
-                                                    <div className="text-4xl font-extrabold text-red-500">
-                                                        尚差 {gap.toFixed(1)} 萬
-                                                    </div>
-                                                ) : (
-                                                    <div className="text-4xl font-extrabold text-green-500">
-                                                        <i className="fas fa-check-circle mr-2"></i>資金充裕 (+{Math.abs(gap).toFixed(1)} 萬)
-                                                    </div>
-                                                )}
+                                                {gap > 0 ? <div className="text-4xl font-extrabold text-red-500">尚差 {gap.toFixed(1)} 萬</div> : <div className="text-4xl font-extrabold text-green-500"><i className="fas fa-check-circle mr-2"></i>資金充裕 (+{Math.abs(gap).toFixed(1)} 萬)</div>}
                                             </div>
-                                            
-                                            {gap > 0 && (
-                                                <div className="bg-red-900/50 p-4 rounded-lg border border-red-700">
-                                                    <div className="text-red-200 text-sm">建議目標：</div>
-                                                    <div className="font-bold text-white mt-1">
-                                                        目前月收需提升至：<span className="text-yellow-300 text-xl">{targetMonthlyIncome.toFixed(1)} 萬</span>
-                                                    </div>
-                                                    <div className="text-xs text-red-300 mt-1">或 降低生活品質 / 延後退休</div>
-                                                </div>
-                                            )}
+                                            {gap > 0 && <div className="bg-red-900/50 p-4 rounded-lg border border-red-700"><div className="text-red-200 text-sm">建議目標：</div><div className="font-bold text-white mt-1">目前月收需提升至：<span className="text-yellow-300 text-xl">{targetMonthlyIncome.toFixed(1)} 萬</span></div><div className="text-xs text-red-300 mt-1">或 降低生活品質 / 延後退休</div></div>}
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Part 2: Advice (Colored) */}
                             <div className={`p-8 transition-colors duration-500 ${gap > 0 ? 'bg-orange-50' : 'bg-emerald-50'}`}>
                                 <div className="flex items-start">
-                                    <div className={`p-4 rounded-full mr-6 flex-shrink-0 ${gap > 0 ? 'bg-orange-200' : 'bg-emerald-200'}`}>
-                                        <i className={`fas ${gap > 0 ? 'fa-exclamation-triangle text-orange-600' : 'fa-trophy text-emerald-600'} text-3xl`}></i>
-                                    </div>
+                                    <div className={`p-4 rounded-full mr-6 flex-shrink-0 ${gap > 0 ? 'bg-orange-200' : 'bg-emerald-200'}`}><i className={`fas ${gap > 0 ? 'fa-exclamation-triangle text-orange-600' : 'fa-trophy text-emerald-600'} text-3xl`}></i></div>
                                     <div>
                                         <h3 className="font-black text-3xl mb-4 tracking-tight text-gray-900">領航財務建議</h3>
-                                        <p className="text-xl md:text-2xl leading-relaxed font-bold text-gray-900">
-                                            {gap > 0 
-                                                ? "警報：目前的財務航道已偏離安全目標！這不是等待的時刻，而是行動的時刻。請立即執行：1. 極大化主動收入或開展副業。 2. 重新審視大額夢想的可行性。 3. 即刻加大投資部位利用複利追趕。行動，是化解焦慮的唯一解方！請找盈哲保身做更近一步的理財配置規劃。"
-                                                : "完美！您的財務航道無比穩健，已具備掌控未來的絕對實力！這份充裕的資金不僅是安全的保障，更是實現自我價值的燃料。保持紀律，大膽規劃您心中最渴望的第二人生吧！"}
-                                        </p>
+                                        <p className="text-xl md:text-2xl leading-relaxed font-bold text-gray-900">{gap > 0 ? "警報：目前的財務航道已偏離安全目標！這不是等待的時刻，而是行動的時刻。請立即執行：1. 極大化主動收入或開展副業。 2. 重新審視大額夢想的可行性。 3. 即刻加大投資部位利用複利追趕。行動，是化解焦慮的唯一解方！請找盈哲保身做更近一步的理財配置規劃。" : "完美！您的財務航道無比穩健，已具備掌控未來的絕對實力！這份充裕的資金不僅是安全的保障，更是實現自我價值的燃料。保持紀律，大膽規劃您心中最渴望的第二人生吧！"}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Footer Section */}
                         <div className="mt-8 mb-12 flex flex-col items-center space-y-6">
-                            
                             <a href="https://erichlin2.notion.site/?source=copy_link" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center hover:opacity-90 transition-all transform hover:scale-105">
-                                <div className="relative">
-                                    <img src="https://github.com/shockingws/retirement/blob/main/avatar.webp?raw=true" alt="盈哲保身" className="w-16 h-16 rounded-2xl shadow-lg mb-2 border-4 border-white object-cover" />
-                                </div>
+                                <div className="relative"><img src="https://github.com/shockingws/retirement/blob/main/avatar.webp?raw=true" alt="盈哲保身" className="w-16 h-16 rounded-2xl shadow-lg mb-2 border-4 border-white object-cover" /></div>
                             </a>
-
-                            <div className="text-slate-400 text-[10px] text-center max-w-md leading-relaxed">
-                                退休領航員網站製作 by Erich<br/>
-                                所有的計算為線性預測，不加上通膨、投資報酬率或複利，僅供參考。
-                            </div>
+                            <div className="text-slate-400 text-[10px] text-center max-w-md leading-relaxed">退休領航員網站製作 by Erich<br/>所有的計算為線性預測，不加上通膨、投資報酬率或複利，僅供參考。</div>
                         </div>
                     </div>
+
+                    <CalculationDetailModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} details={detailData} />
                 </div>
             );
         };
