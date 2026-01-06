@@ -362,8 +362,8 @@
                                         <span>{(details.annualExpEmergencyRaw).toFixed(1)}/年 × {details.yearsToWork}年</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>現金活存 (結餘)</span>
-                                        <span>{details.remainingCash.toFixed(1)}/年 × {details.yearsToWork}年</span>
+                                        <span>現金活存 (結餘) (預測)</span>
+                                        <span>{details.remainingCashProjected.toFixed(1)}/年 × {details.yearsToWork}年</span>
                                     </div>
                                     {details.deficit < 0 && (
                                         <div className="flex justify-between text-red-500">
@@ -636,17 +636,25 @@
 
             // --- Ratios (Income Based) ---
             const annualMortgagePayment = includeHousePlan ? monthlyMortgage * 12 : 0;
-            const totalAnnualOutflow = totalAnnualRegularExpense + annualMortgagePayment;
-            const remainingCash = Math.max(0, annualIncome - totalAnnualOutflow);
-            const deficit = Math.min(0, annualIncome - totalAnnualOutflow);
+            const totalAnnualOutflowCurrent = totalAnnualRegularExpense; // For 631, we ignore mortgage
+            // For 631 Surplus, we ignore mortgage as per user request.
+            const remainingCashForRatio = Math.max(0, annualIncome - totalAnnualOutflowCurrent);
+            
+            // For Projection, we DO include mortgage in annual outflow
+            const totalAnnualOutflowProjection = totalAnnualRegularExpense + annualMortgagePayment;
+            const remainingCashForProjection = Math.max(0, annualIncome - totalAnnualOutflowProjection);
+            const deficit = Math.min(0, annualIncome - totalAnnualOutflowProjection);
 
             const ratioBase = Math.max(annualIncome, 1); 
-            const visualRatioBase = Math.max(annualIncome, totalAnnualRegularExpense + annualMortgagePayment);
+            // 631 visual base uses current expenses, excluding mortgage
+            const visualRatioBase = Math.max(annualIncome, totalAnnualRegularExpense);
 
             const ratioProtection = (annualExpProtectionRaw / ratioBase) * 100;
+            // 631 Living Ratio: Exclude Mortgage
             const ratioLiving = (annualExpLiving / ratioBase) * 100;
             
-            const totalSavingsForRatio = annualExpInvestRaw + annualExpSavingsRaw + annualExpEmergencyRaw + remainingCash;
+            // 631 Savings Ratio: Includes Surplus (calculated without mortgage)
+            const totalSavingsForRatio = annualExpInvestRaw + annualExpSavingsRaw + annualExpEmergencyRaw + remainingCashForRatio;
             const ratioSavings = (totalSavingsForRatio / ratioBase) * 100;
 
             const visRatioProtection = (annualExpProtectionRaw / visualRatioBase) * 100;
@@ -656,6 +664,7 @@
             // --- ADVANCED PROJECTIONS ---
             
             // 1. Assets at Retirement
+            // Use remainingCashForProjection (accounts for mortgage payments)
             const totalAccumulatedInvest = investItems.reduce((acc, item) => {
                 const investYears = Math.max(0, Math.min(parseFloat(item.investUntilAge || retireAge) - age, yearsToWork));
                 return acc + (parseFloat(item.value || 0) * 12 * investYears);
@@ -668,8 +677,8 @@
 
             const totalAccumulatedEmergency = annualExpEmergencyRaw * yearsToWork;
 
-            const totalAccumulatedSurplus = remainingCash * yearsToWork;
-            const totalAccumulatedDeficit = deficit * yearsToWork; // Deficit reduces assets
+            const totalAccumulatedSurplus = remainingCashForProjection * yearsToWork;
+            const totalAccumulatedDeficit = deficit * yearsToWork; 
 
             const totalWealthAccumulation = totalAccumulatedInvest + totalAccumulatedSavings + totalAccumulatedEmergency + totalAccumulatedSurplus + totalAccumulatedDeficit;
 
@@ -704,7 +713,8 @@
                 investItems,
                 savingsItems,
                 annualExpEmergencyRaw,
-                remainingCash,
+                remainingCash: remainingCashForRatio,
+                remainingCashProjected: remainingCashForProjection,
                 deficit,
                 houseDownPayment,
                 totalOtherDreams,
@@ -739,8 +749,8 @@
                             {investItems.map(item => <div key={item.id}>{item.name}: {(item.value*12).toFixed(1)} 萬/年</div>)}
                             {savingsItems.map(item => <div key={item.id}>{item.name}: {item.value} 萬/年</div>)}
                             <div>一般備用金: {(annualExpEmergencyRaw).toFixed(1)} 萬/年</div>
-                            {remainingCash > 0 && (
-                                <div className="text-emerald-300">現金活存 (結餘): {remainingCash.toFixed(1)} 萬/年</div>
+                            {remainingCashForRatio > 0 && (
+                                <div className="text-emerald-300">現金活存 (結餘): {remainingCashForRatio.toFixed(1)} 萬/年</div>
                             )}
                         </div>
                     );
